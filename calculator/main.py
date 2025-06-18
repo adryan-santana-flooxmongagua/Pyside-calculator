@@ -1,6 +1,7 @@
 import sys
 
 from display import Display
+from info import Info
 from main_window import MainWindow
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
@@ -17,6 +18,11 @@ if __name__ == '__main__':
     window.setWindowIcon(icon)
     app.setWindowIcon(icon)
 
+#info
+    info = Info('2.0 ^ 10.0 = 1024')
+    window.addToVLayout(info)
+
+#display
     display = Display()
     window.addWidgetToVLayout(display)
 
