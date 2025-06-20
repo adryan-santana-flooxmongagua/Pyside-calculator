@@ -38,6 +38,12 @@ class ButtonsGrid(QGridLayout):
         self.display = display
         self.info = info
         self._equation = ''
+        self._equationInitialValue = 'Sua conta'
+        self._left = None
+        self._right = None
+        self._op = None
+
+        self.equation = self._equationInitialValue
         self._makeGrid()
 
     @property
@@ -56,16 +62,29 @@ class ButtonsGrid(QGridLayout):
 
                 if not isNumOrDot(buttonText) and not isEmpty(buttonText):
                     button.setProperty('cssClass', 'specialButton')
+                    self._configSpecialButton(button)
 
                 self.addWidget(button, rowNumber, colNumber)
-                buttonSlot = self._makeButtonDisplaySlot(
-                    self._insertButtonTextToDisplay,
-                    button,
-                )
-                button.clicked.connect(buttonSlot)  # type: ignore
+                slot = self._makeSlot(self._insertButtonTextToDisplay, button)
+                self._connectButtonClicked(button, slot)
 
-    def _makeButtonDisplaySlot(self, func, *args, **kwargs):
-        @Slot(bool)
+    def _connectButtonClicked(self, button, slot):
+        button.clicked.connect(slot)  # type: ignore
+
+    def _configSpecialButton(self, button):
+        text = button.text()
+
+        if text == 'C':
+            self._connectButtonClicked(button, self._clear)
+
+        if text in '+-/*':
+            self._connectButtonClicked(
+                button,
+                self._makeSlot(self._operatorClicked, button)
+            )
+
+    def _makeSlot(self, func, *args, **kwargs):
+        @ Slot(bool)
         def realSlot(_):
             func(*args, **kwargs)
         return realSlot
@@ -78,3 +97,29 @@ class ButtonsGrid(QGridLayout):
             return
 
         self.display.insert(buttonText)
+
+    def _clear(self):
+        self._left = None
+        self._right = None
+        self._op = None
+        self.equation = self._equationInitialValue
+        self.display.clear()
+
+    def _operatorClicked(self, button):
+        buttonText = button.text()  # +-/* (etc...)
+        displayText = self.display.text()  # Deverá ser meu número _left
+        self.display.clear()  # Limpa o display
+
+        # Se a pessoa clicou no operador sem
+        # configurar qualquer número
+        if not isValidNumber(displayText) and self._left is None:
+            print('Não tem nada para colocar no valor da esquerda')
+            return
+
+        # Se houver algo no número da esquerda,
+        # não fazemos nada. Aguardaremos o número da direita.
+        if self._left is None:
+            self._left = float(displayText)
+
+        self._op = buttonText
+        self.equation = f'{self._left} {self._op} ??'
